@@ -12,19 +12,23 @@ import spoofbuz
 from qopy.exceptions import AuthenticationError, IneligibleError, InvalidAppSecretError, InvalidAppIdError
 
 class Client:
-	def __init__(self, **kwargs):
-		self.id, self.sec = self.cfg_setup(False)
+	def __init__(self, email, pwd):
+		self.spoofer = spoofbuz.Spoofer()
+		self.id = self.spoofer.get_app_id()
 		self.session = requests.Session()
 		self.session.headers.update({
 			'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:67.0) Gecko/20100101 Firefox/67.0',
 			"X-App-Id": self.id})
 		self.base = 'https://www.qobuz.com/api.json/0.2/'
+		self.auth(email, pwd)
+		self.sec = self.cfg_setup()
 
 	def api_call(self, epoint, **kwargs):
 		if epoint == "user/login?":	
 			params={
 				"email": kwargs['email'],
-				"password": kwargs['pwd']}
+				"password": kwargs['pwd'],
+				"app_id": self.id}
 		elif epoint == "track/get?":
 			params={
 				"track_id": kwargs['id']}					
@@ -91,18 +95,13 @@ class Client:
 		return r.json()
 
 	def auth(self, email, pwd):
-		try:
-			usr_info = self.api_call('user/login?', email=email, pwd=pwd)
-		except InvalidAppIdError:
-			self.id, self.sec = self.cfg_setup(True)
-			usr_info = self.api_call('user/login?', email=email, pwd=pwd)
+		usr_info = self.api_call('user/login?', email=email, pwd=pwd)
 		if not usr_info['user']['credential']['parameters']:
 			raise IneligibleError("Free accounts are not eligible to download tracks.")
 		self.uat = usr_info['user_auth_token']
 		self.session.headers.update({
 			"X-User-Auth-Token": self.uat})
-		# Qo-DL only needs the subscription type.
-		return usr_info['user']['credential']['parameters']['short_label']
+		self.label = usr_info['user']['credential']['parameters']['short_label']
 	
 	def get_album_meta(self, id):
 		return self.api_call('album/get?', id=id)
@@ -111,11 +110,7 @@ class Client:
 		return self.api_call('track/get?', id=id)
 	
 	def get_track_url(self, id, fmt_id):
-		try:
-			return self.api_call('track/getFileUrl?', id=id, fmt_id=fmt_id)
-		except InvalidAppSecretError:
-			self.id, self.sec = self.cfg_setup(True)
-			return self.api_call('track/getFileUrl?', id=id, fmt_id=fmt_id)
+		return self.api_call('track/getFileUrl?', id=id, fmt_id=fmt_id)
 	
 	# Metadata which could require multiple calls (500+ items).
 	def multi_meta(self, epoint, key, id, type):
@@ -153,23 +148,21 @@ class Client:
 		except InvalidAppSecretError:
 			return False
 	
-	def cfg_setup(self, delete):
+	def cfg_setup(self):
 		tmp = '/tmp' if platform.system() == 'Darwin' else tempfile.gettempdir()
 		cfg = os.path.join(tmp, 'qopy_cfg.json')
-		if delete:
+		try:
 			os.remove(cfg)
-		if not os.path.isfile(cfg):
-			spoofer = spoofbuz.Spoofer()
-			id = spoofer.get_app_id()
-			for secret in spoofer.get_app_sec().values():
-				if self.test_secret(secret):
-					sec = secret
-					break
-			id_sec={
-				"id": id,
-				"sec": sec}
-			with open(cfg, 'w') as f:
-				json.dump(id_sec, f, indent=4)
+		except FileNotFoundError:
+			pass
+		for secret in self.spoofer.get_app_sec().values():
+			if self.test_secret(secret):
+				sec = secret
+				break
+		id_sec={
+			"sec": sec}
+		with open(cfg, 'w') as f:
+			json.dump(id_sec, f, indent=4)
 		with open(cfg) as f:
 			cfg_out = json.load(f)
-		return cfg_out['id'], cfg_out['sec']
+		return cfg_out['sec']

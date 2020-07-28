@@ -18,8 +18,6 @@ import mutagen.id3 as id3
 from mutagen.flac import FLAC, Picture
 from mutagen.id3 import ID3NoHeaderError
 
-client = qopy.Client()
-
 def print_title():
 	print("""
  _____         ____  __       _____     _               
@@ -125,6 +123,7 @@ def parse_prefs(cfg, tag_cfg):
 			"URL": cfg['prefs']['tags']['url'],
 			"UPC": cfg['prefs']['tags']['upc'],
 			"TRACKNUMBER": cfg['prefs']['tags']['tracknumber'],
+			"TRACKPADDED": cfg['prefs']['tags']['trackpadded'],
 			"TRACKTOTAL": cfg['prefs']['tags']['tracktotal'],		
 			"YEAR": cfg['prefs']['tags']['year']}
 	qual = rt_opts['qual']
@@ -141,7 +140,8 @@ def parse_prefs(cfg, tag_cfg):
 		3: "_600.jpg",
 		4: "_max.jpg"}
 	if not dl_dir.strip():
-		dl_dir = "Qo-DL Reborn downloads"
+		dl_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
+				      "Qo-DL Reborn downloads")
 	rt_opts['dir'] = dl_dir
 	rt_opts['qual'] = qual_dict[qual]
 	rt_opts['cov_size'] = cov_dict[cov_size]
@@ -347,13 +347,14 @@ def download_track(url_resp, title, pre, num, tot, qual, ref):
 	return True
 
 def download(id, album_fol_s, meta, num, tot, fol, qual, cov, ref, tag_cfg, fn_template, cov_dir, embed_cov):
-	if not fn_template.strip():
-		fn_template = str(num) + ". " +  meta['TITLE']
-	else:
-		fn_template = fn_template.upper().format(**meta)
-	title = meta['TITLE']
 	if not tot:
 		tot = meta['TRACKTOTAL']
+	if not fn_template.strip():
+		fn_template = str(num).zfill(len(str(tot))) + ". " +	 meta['TITLE']
+	else:
+		meta['TRACKPADDED'] = str(num).zfill(len(str(tot)))
+		fn_template = fn_template.upper().format(**meta)
+	title = meta['TITLE']
 	pre = os.path.join(album_fol_s, str(num) + ".qo-dl_download")	
 	url_resp = client.get_track_url(id, qual)
 	if url_resp['format_id'] == 5:
@@ -540,8 +541,8 @@ if __name__ == '__main__':
 				cli = True
 		except IndexError:
 			cli = False
-		label = client.auth(cfg['email'], cfg['pwd'])
-		print("Signed in successfully - " + label + " account.\n")
+		client = qopy.Client(cfg['email'], cfg['pwd'])
+		print("Signed in successfully - " + client.label + " account.\n")
 		main(False, False, cfg, tag_cfg, None, cli)
 	except (KeyboardInterrupt, SystemExit):
 		sys.exit()
