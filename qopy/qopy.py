@@ -1,12 +1,8 @@
 # Wrapper for Qo-DL Reborn. Sorrow446.
 
-import os
 import time
-import json
 import hashlib
 import requests
-import tempfile
-import platform
 
 import spoofbuz
 from qopy.exceptions import AuthenticationError, IneligibleError, InvalidAppSecretError, InvalidAppIdError
@@ -21,7 +17,7 @@ class Client:
 			"X-App-Id": self.id})
 		self.base = 'https://www.qobuz.com/api.json/0.2/'
 		self.auth(email, pwd)
-		self.sec = self.cfg_setup()
+		self.cfg_setup()
 
 	def api_call(self, epoint, **kwargs):
 		if epoint == "user/login?":	
@@ -149,20 +145,7 @@ class Client:
 			return False
 	
 	def cfg_setup(self):
-		tmp = '/tmp' if platform.system() == 'Darwin' else tempfile.gettempdir()
-		cfg = os.path.join(tmp, 'qopy_cfg.json')
-		try:
-			os.remove(cfg)
-		except FileNotFoundError:
-			pass
 		for secret in self.spoofer.get_app_sec().values():
 			if self.test_secret(secret):
-				sec = secret
+				self.sec = secret
 				break
-		id_sec={
-			"sec": sec}
-		with open(cfg, 'w') as f:
-			json.dump(id_sec, f, indent=4)
-		with open(cfg) as f:
-			cfg_out = json.load(f)
-		return cfg_out['sec']
