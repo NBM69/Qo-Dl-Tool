@@ -11,13 +11,17 @@ class Client:
 	def __init__(self, email, pwd):
 		self.spoofer = spoofbuz.Spoofer()
 		self.id = self.spoofer.get_app_id()
+		#self.id = ""
+
 		self.session = requests.Session()
 		self.session.headers.update({
 			'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:67.0) Gecko/20100101 Firefox/67.0',
 			"X-App-Id": self.id})
 		self.base = 'https://www.qobuz.com/api.json/0.2/'
 		self.auth(email, pwd)
+
 		self.cfg_setup()
+		#self.sec = ""
 
 	def api_call(self, epoint, **kwargs):
 		if epoint == "user/login?":	

@@ -543,6 +543,8 @@ if __name__ == '__main__':
 			cli = False
 		client = qopy.Client(cfg['email'], cfg['pwd'])
 		print("Signed in successfully - " + client.label + " account.\n")
+		print("App ID: " + client.id)
+		print("App Secret: " + client.sec + "\n")
 		main(False, False, cfg, tag_cfg, None, cli)
 	except (KeyboardInterrupt, SystemExit):
 		sys.exit()
