@@ -6,8 +6,6 @@ Tool written in Python to download streamable tracks from Qobuz.
 
 **People have been seen selling our tools. DO NOT buy them. Our tools are free and always will be.**
 
-[COMPILED BUILDS HERE](https://github.com/Sorrow446/Qo-DL-Reborn/releases)
-
 # Setup
 ## Quickstart ##
 Input the values for the keys below into your config file:
